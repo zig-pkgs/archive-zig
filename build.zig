@@ -9,13 +9,13 @@ const version: std.SemanticVersion = .{
 const version_string = std.fmt.comptimePrint("{}", .{version});
 
 pub fn build(b: *std.Build) void {
-    const upstream = b.dependency("archive", .{});
+    const upstream = b.dependency(package, .{});
     const zlib = b.dependency("zlib", .{});
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
     const lib = b.addStaticLibrary(.{
-        .name = "archive",
+        .name = package["lib".len..],
         .target = target,
         .optimize = optimize,
     });

@@ -8,7 +8,7 @@
         "README.md",
     },
     .dependencies = .{
-        .archive = .{
+        .libarchive = .{
             .hash = "1220c41439ef9665401260dde21e2c5ed4c193d29da786f92341638f1691cefcb81f",
             .url = "https://www.libarchive.org/downloads/libarchive-3.7.2.tar.xz",
         },
