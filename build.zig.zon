@@ -1,5 +1,5 @@
 .{
-    .name = "tilibs",
+    .name = "libarchive",
     .version = "0.0.0",
     .paths = .{
         "build.zig",
