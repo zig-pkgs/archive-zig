@@ -457,8 +457,8 @@ pub fn build(b: *std.Build) void {
         .PACKAGE_VERSION = version_string,
         .PCRE2_STATIC = null,
         .PCRE_STATIC = null,
-        .SIZEOF_INT = target.result.c_type_byte_size(.int),
-        .SIZEOF_LONG = target.result.c_type_byte_size(.long),
+        .SIZEOF_INT = target.result.cTypeByteSize(.int),
+        .SIZEOF_LONG = target.result.cTypeByteSize(.long),
         .SIZEOF_WCHAR_T = @as(u3, switch (target.result.os.tag) {
             .windows => 2,
             else => 4,
