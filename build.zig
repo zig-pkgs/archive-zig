@@ -4,7 +4,7 @@ const package = "libarchive";
 const version: std.SemanticVersion = .{
     .major = 3,
     .minor = 7,
-    .patch = 3,
+    .patch = 7,
 };
 const version_string = std.fmt.comptimePrint("{}", .{version});
 
@@ -248,7 +248,6 @@ pub fn build(b: *std.Build) void {
         .HAVE_LIBXML2 = null,
         .HAVE_LIBXML_XMLREADER_H = null,
         .HAVE_LIBXML_XMLWRITER_H = null,
-        .HAVE_LIBZ = null,
         .HAVE_LIBZSTD = null,
         .HAVE_LIMITS_H = true,
         .HAVE_LINK = true,
@@ -378,6 +377,7 @@ pub fn build(b: *std.Build) void {
         .HAVE_SYMLINK = true,
         .HAVE_SYS_ACL_H = null,
         .HAVE_SYS_CDEFS_H = true,
+        .HAVE_SYSCONF = false,
         .HAVE_SYS_DIR_H = null,
         .HAVE_SYS_EA_H = null,
         .HAVE_SYS_EXTATTR_H = null,
@@ -387,7 +387,6 @@ pub fn build(b: *std.Build) void {
         .HAVE_SYS_NDIR_H = null,
         .HAVE_SYS_PARAM_H = true,
         .HAVE_SYS_POLL_H = true,
-        .HAVE_SYS_QUEUE_H = true,
         .HAVE_SYS_RICHACL_H = null,
         .HAVE_SYS_SELECT_H = true,
         .HAVE_SYS_STATFS_H = true,
