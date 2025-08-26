@@ -6,7 +6,7 @@ const version: std.SemanticVersion = .{
     .minor = 7,
     .patch = 7,
 };
-const version_string = std.fmt.comptimePrint("{}", .{version});
+const version_string = std.fmt.comptimePrint("{f}", .{version});
 
 pub fn build(b: *std.Build) void {
     const upstream = b.dependency(package, .{});
@@ -14,15 +14,20 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = package["lib".len..],
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
     });
+
     lib.root_module.linkLibrary(zlib.artifact("z"));
     lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
     lib.root_module.addConfigHeader(b.addConfigHeader(.{
-        .style = .{ .autoconf = upstream.path("config.h.in") },
+        .style = .{
+            .autoconf_undef = upstream.path("config.h.in"),
+        },
     }, .{
         .ARCHIVE_ACL_DARWIN = null,
         .ARCHIVE_ACL_FREEBSD = null,
@@ -450,7 +455,7 @@ pub fn build(b: *std.Build) void {
         .PACKAGE = package,
         .PACKAGE_BUGREPORT = package ++ "-discuss@googlegroups.com",
         .PACKAGE_NAME = package,
-        .PACKAGE_STRING = b.fmt("{s} {}", .{ package, version }),
+        .PACKAGE_STRING = b.fmt("{s} {s}", .{ package, version_string }),
         .PACKAGE_TARNAME = package,
         .PACKAGE_URL = "",
         .PACKAGE_VERSION = version_string,
