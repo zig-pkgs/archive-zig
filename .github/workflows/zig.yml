@@ -1,0 +1,24 @@
+name: zig CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    name: Build and Test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.1
+      - run: zig build test
+      - run: zig build -Dtarget=x86_64-linux
+      # TODO: add back when translate-c support bitfield
+      # libarchive get rid of time.h in 4.0
+      # - run: zig build test -Dtarget=x86_64-linux
