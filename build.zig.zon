@@ -1,7 +1,7 @@
 .{
     .name = .libarchive,
     .fingerprint = 0x2cf9e5304f26ebc,
-    .version = "0.0.0",
+    .version = "3.8.1",
     .minimum_zig_version = "0.15.1",
     .paths = .{
         "src",
@@ -12,8 +12,8 @@
     },
     .dependencies = .{
         .libarchive = .{
-            .url = "https://www.libarchive.org/downloads/libarchive-3.7.7.tar.xz",
-            .hash = "N-V-__8AAAKoVwGFS9IrU7WeBy5FuGEn00Qnwm1y0JW3qKX7",
+            .url = "https://www.libarchive.org/downloads/libarchive-3.8.1.tar.xz",
+            .hash = "N-V-__8AAEvFawF8DaCZm6masOMUwMMiKuPD3ndd_4ZKunD9",
         },
         .zstd = .{
             .url = "git+https://github.com/allyourcodebase/zstd.git?ref=1.5.7#01327d49cbc56dc24c20a167bb0055d7fc23de84",

@@ -3,8 +3,8 @@ const std = @import("std");
 const package = "libarchive";
 const version: std.SemanticVersion = .{
     .major = 3,
-    .minor = 7,
-    .patch = 7,
+    .minor = 8,
+    .patch = 1,
 };
 const version_string = std.fmt.comptimePrint("{f}", .{version});
 
@@ -276,7 +276,6 @@ pub fn build(b: *std.Build) void {
         .HAVE_LUTIMES = true,
         .HAVE_LZ4HC_H = null,
         .HAVE_LZ4_H = null,
-        .HAVE_LZMA_FILTER_ARM64 = null,
         .HAVE_LZMA_H = null,
         .HAVE_LZMA_STREAM_ENCODER_MT = null,
         .HAVE_LZO_LZO1X_H = null,
@@ -441,6 +440,19 @@ pub fn build(b: *std.Build) void {
         .HAVE__GET_TIMEZONE = null,
         .HAVE__MKGMTIME = null,
         .ICONV_CONST = {},
+        .HAVE_LIBICONV = null,
+        .HAVE_LIBXML_XMLVERSION_H = null,
+        .HAVE_LIBZ = null,
+        .HAVE_MBEDTLS_VERSION_H = null,
+        .HAVE_NETTLE_VERSION_H = null,
+        .HAVE_OPENSSL_OPENSSLV_H = null,
+        .HAVE_TCGETATTR = true,
+        .HAVE_TCSETATTR = true,
+        .HAVE_ZSTD_minCLevel = true,
+        .LIBACL_PKGCONFIG_VERSION = null,
+        .LIBATTR_PKGCONFIG_VERSION = null,
+        .LIBB2_PKGCONFIG_VERSION = null,
+        .LIBRICHACL_PKGCONFIG_VERSION = null,
         .LIBARCHIVE_VERSION_NUMBER = std.fmt.comptimePrint("{d}{d:0>3}{d:0>3}", .{
             version.major, version.minor, version.patch,
         }),
@@ -611,7 +623,8 @@ const archive_src = [_][]const u8{
     "archive_entry_stat.c",
     "archive_entry_strmode.c",
     "archive_entry_xattr.c",
-    "archive_getdate.c",
+    "archive_time.c",
+    "archive_parse_date.c",
     "archive_hmac.c",
     "archive_match.c",
     "archive_options.c",
