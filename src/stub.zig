@@ -22,7 +22,7 @@ fn xzBidderBid(
     _ = self;
     var avail: isize = 0;
     if (c.__archive_read_filter_ahead(filter, 6, &avail)) |ptr| {
-        std.debug.assert(avail == 6);
+        if (avail != 6) return 0;
         const buffer: [*]const u8 = @ptrCast(@alignCast(ptr));
         // Verify Header Magic Bytes : FD 37 7A 58 5A 00
         if (!mem.eql(u8, buffer[0..6], "\xFD\x37\x7A\x58\x5A\x00")) {
