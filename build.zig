@@ -548,10 +548,10 @@ pub fn build(b: *std.Build) void {
     translate_c.addConfigHeader(config_h);
     translate_c.addIncludePath(upstream.path("libarchive"));
 
-    const stub = b.addLibrary(.{
-        .name = "stub",
+    const exports = b.addLibrary(.{
+        .name = "exports",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/stub.zig"),
+            .root_source_file = b.path("src/exports.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
@@ -576,7 +576,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    lib.root_module.linkLibrary(stub);
+    lib.root_module.linkLibrary(exports);
     lib.root_module.linkLibrary(acl.artifact("acl"));
     lib.root_module.linkLibrary(zstd.artifact("zstd"));
     lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
@@ -651,13 +651,13 @@ const archive_src = [_][]const u8{
     "archive_read_set_options.c",
     "archive_read_support_filter_all.c",
     "archive_read_support_filter_by_code.c",
-    "archive_read_support_filter_bzip2.c",
+    //"archive_read_support_filter_bzip2.c",
     "archive_read_support_filter_compress.c",
-    "archive_read_support_filter_gzip.c",
-    "archive_read_support_filter_grzip.c",
-    "archive_read_support_filter_lrzip.c",
-    "archive_read_support_filter_lz4.c",
-    "archive_read_support_filter_lzop.c",
+    //"archive_read_support_filter_gzip.c",
+    //"archive_read_support_filter_grzip.c",
+    //"archive_read_support_filter_lrzip.c",
+    //"archive_read_support_filter_lz4.c",
+    //"archive_read_support_filter_lzop.c",
     "archive_read_support_filter_none.c",
     "archive_read_support_filter_program.c",
     "archive_read_support_filter_rpm.c",
