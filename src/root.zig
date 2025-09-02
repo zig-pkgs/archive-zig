@@ -24,40 +24,46 @@ test "zstd compress" {
     }
 
     {
-        var home_dir = try pkg_dir.makeOpenPath("usr/bin", .{});
-        defer home_dir.close();
-        var script = try home_dir.createFile("helloworld.sh", .{});
+        var bin_dir = try pkg_dir.makeOpenPath("usr/bin", .{});
+        defer bin_dir.close();
+        var script = try bin_dir.createFile("helloworld.sh", .{});
         defer script.close();
         try script.chmod(0o755);
         try script.writeAll("!#/bin/sh\necho \"hello world\"");
+
+        try bin_dir.symLink("helloworld.sh", "helloworld", .{});
     }
 
     var buf: [8 * 1024]u8 = undefined;
-    var mtree_writer: Writer = try .init(testing.allocator, &buf, .{
-        .dir = pkg_dir,
-        .sub_path = ".MTREE",
-        .flags = .{},
-        .filter = .zstd,
-        .format = .mtree,
-        .fakeroot = true,
-        .opts = &.{
-            "!all", "use-set", "type", "uid",    "gid",
-            "mode", "time",    "size", "sha256", "link",
-        },
-    });
-    defer mtree_writer.deinit();
-    try mtree_writer.writeDir(testing.allocator, pkg_dir);
+    {
+        var mtree_writer: Writer = try .init(testing.allocator, &buf, .{
+            .dir = pkg_dir,
+            .sub_path = ".MTREE",
+            .flags = .{},
+            .filter = .zstd,
+            .format = .mtree,
+            .fakeroot = true,
+            .opts = &.{
+                "!all", "use-set", "type", "uid",    "gid",
+                "mode", "time",    "size", "sha256", "link",
+            },
+        });
+        defer mtree_writer.deinit();
+        try mtree_writer.writeDir(testing.allocator, pkg_dir);
+    }
 
-    var pkg_writer: Writer = try .init(testing.allocator, &buf, .{
-        .dir = tmp_dir.dir,
-        .sub_path = "helloworld.pkg.tar.zst",
-        .flags = .{},
-        .filter = .zstd,
-        .format = .pax_restricted,
-        .fakeroot = true,
-    });
-    defer pkg_writer.deinit();
-    try pkg_writer.writeDir(testing.allocator, pkg_dir);
+    {
+        var pkg_writer: Writer = try .init(testing.allocator, &buf, .{
+            .dir = tmp_dir.dir,
+            .sub_path = "helloworld.pkg.tar.zst",
+            .flags = .{},
+            .filter = .zstd,
+            .format = .pax_restricted,
+            .fakeroot = true,
+        });
+        defer pkg_writer.deinit();
+        try pkg_writer.writeDir(testing.allocator, pkg_dir);
+    }
 }
 
 test "decompress" {

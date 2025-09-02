@@ -32,7 +32,6 @@ pub fn init(gpa: mem.Allocator, buffer: []u8, options: InitOptions) !Writer {
     const a = c.archive_write_new() orelse
         return error.NoMemory;
 
-    assert(c.archive_errno(a) == 0);
     switch (options.format) {
         inline else => |t| {
             const set_format_fn_name = set_format_prefix ++ @tagName(t);
@@ -98,7 +97,20 @@ fn drain(io_w: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Wr
     return io_w.consume(n);
 }
 
-pub fn writerHeader(w: *Writer, entry: Entry) std.Io.Writer.Error!void {
+pub const WriteHeaderOptions = struct {
+    stat: *const posix.Stat,
+    path: [*:0]const u8,
+    symlink: ?[*:0]const u8 = null,
+};
+
+pub fn writerHeader(w: *Writer, options: WriteHeaderOptions) !void {
+    var entry: Entry = try .init();
+    defer entry.deinit();
+    entry.setPathName(options.path);
+    entry.copyStat(options.stat);
+    if (options.symlink) |symlink| {
+        c.archive_entry_set_symlink(entry.inner, symlink);
+    }
     if (w.fakeroot) {
         c.archive_entry_set_uid(entry.inner, 0);
         c.archive_entry_set_gid(entry.inner, 0);
@@ -113,70 +125,56 @@ pub fn writerHeader(w: *Writer, entry: Entry) std.Io.Writer.Error!void {
     }
 }
 
-pub const WriteFileOptions = struct {
-    file: std.fs.File,
-    path: [*:0]const u8,
-};
-
-pub fn writeFile(w: *Writer, options: WriteFileOptions) !void {
+pub fn writeFile(w: *Writer, r: *std.Io.Reader) !void {
     const io_w = &w.interface;
-
-    const st = try posix.fstat(options.file.handle);
-    var entry: Entry = try .init();
-    defer entry.deinit();
-    entry.setPathName(options.path);
-    entry.copyStat(&st);
-    try w.writerHeader(entry);
-
-    var buf: [8 * 1024]u8 = undefined;
-    var file_reader = options.file.reader(&buf);
-    const reader = &file_reader.interface;
-    _ = try reader.streamRemaining(io_w);
-
+    _ = try r.streamRemaining(io_w);
     try io_w.flush();
 }
 
-const WriteDirHeaderOptions = struct {
-    dir: std.fs.Dir,
-    path: [*:0]const u8,
-};
-
-pub fn writeDirHeader(w: *Writer, options: WriteDirHeaderOptions) !void {
-    const st = try posix.fstat(options.dir.fd);
-    var header: Entry = try .init();
-    defer header.deinit();
-    header.setPathName(options.path);
-    header.copyStat(&st);
-    try w.writerHeader(header);
-}
-
 pub fn writeDir(w: *Writer, gpa: mem.Allocator, dir: std.fs.Dir) !void {
+    const format = c.archive_format(w.a);
     var walker = try dir.walk(gpa);
     defer walker.deinit();
 
     const archive_stat = try w.file.stat();
 
     while (try walker.next()) |entry| {
+        const st = try posix.fstatat(entry.dir.fd, entry.basename, posix.AT.SYMLINK_NOFOLLOW);
+        const stat: std.fs.File.Stat = .fromPosix(st);
+        if (archive_stat.inode == stat.inode) continue;
         switch (entry.kind) {
             .file => {
-                var file = try entry.dir.openFile(entry.basename, .{});
+                try w.writerHeader(.{
+                    .stat = &st,
+                    .path = entry.path,
+                });
+
+                if (stat.size == 0 or format == c.ARCHIVE_FORMAT_MTREE)
+                    continue;
+
+                const file = try entry.dir.openFile(entry.basename, .{});
                 defer file.close();
-                const stat = try file.stat();
-                if (archive_stat.inode == stat.inode) continue;
-                try w.writeFile(.{
-                    .file = file,
+
+                var buf: [8 * 1024]u8 = undefined;
+                var file_reader = file.reader(&buf);
+                try w.writeFile(&file_reader.interface);
+            },
+            .sym_link => {
+                var path: [std.fs.max_path_bytes + 1]u8 = undefined;
+                const link = try entry.dir.readLinkZ(entry.basename, &path);
+                path[link.len] = 0;
+                try w.writerHeader(.{
+                    .stat = &st,
+                    .path = entry.path,
+                    .symlink = @ptrCast(link.ptr),
+                });
+            },
+            else => {
+                try w.writerHeader(.{
+                    .stat = &st,
                     .path = entry.path,
                 });
             },
-            .directory => {
-                var child = try entry.dir.openDir(entry.basename, .{});
-                defer child.close();
-                try w.writeDirHeader(.{
-                    .dir = child,
-                    .path = entry.path,
-                });
-            },
-            else => {},
         }
     }
 }
