@@ -20,7 +20,4 @@ jobs:
         with:
           version: 0.16.0-dev.70+73a0b5441
       - run: zig build test
-      - run: zig build -Dtarget=x86_64-linux
-      # TODO: add back when translate-c support bitfield
-      # libarchive get rid of time.h in 4.0
-      # - run: zig build test -Dtarget=x86_64-linux
+      - run: zig build test -Dtarget=x86_64-linux

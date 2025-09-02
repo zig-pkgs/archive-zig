@@ -564,16 +564,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const mod = b.addModule(package["lib".len..], .{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "c", .module = translate_c.createModule() },
+        },
+    });
+
     const lib = b.addLibrary(.{
         .name = package["lib".len..],
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/root.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "c", .module = translate_c.createModule() },
-            },
-        }),
+        .root_module = mod,
     });
 
     lib.root_module.linkLibrary(exports);
