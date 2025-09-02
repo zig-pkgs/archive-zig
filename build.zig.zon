@@ -23,5 +23,9 @@
             .url = "git+https://github.com/zig-pkgs/acl-zig.git#b2171a90750d5e0bcc454e496f550219f11e8d56",
             .hash = "acl-0.0.0-giSPISkuAABfNzsIUruCxdLroQphKiNMs8p025dKhASY",
         },
+        .md = .{
+            .url = "git+https://github.com/zig-pkgs/md-zig.git#0d030049fb2cee1f2cc89fbcadd27c2244632d5a",
+            .hash = "md-0.0.0-mJGwvsVdAABaM9VydAI0CSNt4alWxEu_YbtZWcDneORR",
+        },
     },
 }

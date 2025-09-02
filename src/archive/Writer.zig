@@ -1,5 +1,6 @@
 a: *c.archive,
 file: std.fs.File,
+fakeroot: bool,
 interface: std.Io.Writer,
 
 pub const Filter = enum {
@@ -7,6 +8,7 @@ pub const Filter = enum {
 };
 
 pub const Format = enum {
+    mtree,
     pax_restricted,
 };
 
@@ -16,38 +18,57 @@ pub const InitOptions = struct {
     flags: std.fs.File.CreateFlags,
     format: Format,
     filter: Filter,
+    fakeroot: bool = false,
+    opts: ?[]const []const u8 = null,
 };
 
 const set_format_prefix = "archive_write_set_format_";
 const add_filter_prefix = "archive_write_add_filter_";
 
-pub fn init(buffer: []u8, options: InitOptions) !Writer {
+pub fn init(gpa: mem.Allocator, buffer: []u8, options: InitOptions) !Writer {
     var file = try options.dir.createFile(options.sub_path, .{});
     errdefer file.close();
 
     const a = c.archive_write_new() orelse
         return error.NoMemory;
+
     assert(c.archive_errno(a) == 0);
-    const set_format_fn_name = switch (options.format) {
-        inline else => |t| set_format_prefix ++ @tagName(t),
-    };
-    const add_filter_fn_name = switch (options.filter) {
-        inline else => |t| add_filter_prefix ++ @tagName(t),
-    };
-    _ = @field(c, add_filter_fn_name)(a);
-    _ = @field(c, set_format_fn_name)(a);
-    _ = c.archive_write_open_fd(a, file.handle);
+    switch (options.format) {
+        inline else => |t| {
+            const set_format_fn_name = set_format_prefix ++ @tagName(t);
+            _ = @field(c, set_format_fn_name)(a);
+        },
+    }
+    switch (options.filter) {
+        inline else => |t| {
+            const add_filter_fn_name = add_filter_prefix ++ @tagName(t);
+            _ = @field(c, add_filter_fn_name)(a);
+        },
+    }
+    if (options.opts) |opts| {
+        const opts_str = try std.mem.joinZ(gpa, ",", opts);
+        defer gpa.free(opts_str);
+        _ = c.archive_write_set_options(a, opts_str.ptr);
+    }
+    if (c.archive_write_open_fd(a, file.handle) != c.ARCHIVE_OK) {
+        log.err("{d}", .{c.archive_errno(a)});
+        if (c.archive_error_string(a)) |str| {
+            log.err("{s}", .{str});
+        }
+        return error.OpenFd;
+    }
     return .{
         .a = a,
         .file = file,
+        .fakeroot = options.fakeroot,
         .interface = initInterface(buffer),
     };
 }
 
 pub fn deinit(self: *Writer) void {
-    self.file.close();
     _ = c.archive_write_close(self.a);
     _ = c.archive_write_free(self.a);
+    self.file.close();
 }
 
 pub fn initInterface(buffer: []u8) std.Io.Writer {
@@ -78,6 +99,10 @@ fn drain(io_w: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Wr
 }
 
 pub fn writerHeader(w: *Writer, entry: Entry) std.Io.Writer.Error!void {
+    if (w.fakeroot) {
+        c.archive_entry_set_uid(entry.inner, 0);
+        c.archive_entry_set_gid(entry.inner, 0);
+    }
     const rc = c.archive_write_header(w.a, entry.inner);
     if (rc < 0) {
         log.err("{d}", .{c.archive_errno(w.a)});
@@ -129,11 +154,15 @@ pub fn writeDir(w: *Writer, gpa: mem.Allocator, dir: std.fs.Dir) !void {
     var walker = try dir.walk(gpa);
     defer walker.deinit();
 
+    const archive_stat = try w.file.stat();
+
     while (try walker.next()) |entry| {
         switch (entry.kind) {
             .file => {
                 var file = try entry.dir.openFile(entry.basename, .{});
                 defer file.close();
+                const stat = try file.stat();
+                if (archive_stat.inode == stat.inode) continue;
                 try w.writeFile(.{
                     .file = file,
                     .path = entry.path,

@@ -17,6 +17,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    const md = b.dependency("md", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const zstd = b.dependency("zstd", .{
         .target = target,
         .optimize = optimize,
@@ -34,7 +40,7 @@ pub fn build(b: *std.Build) void {
         .ARCHIVE_ACL_LIBRICHACL = null,
         .ARCHIVE_ACL_SUNOS = null,
         .ARCHIVE_ACL_SUNOS_NFS4 = null,
-        .ARCHIVE_CRYPTO_MD5_LIBC = null,
+        .ARCHIVE_CRYPTO_MD5_LIBC = true,
         .ARCHIVE_CRYPTO_MD5_LIBMD = null,
         .ARCHIVE_CRYPTO_MD5_LIBSYSTEM = null,
         .ARCHIVE_CRYPTO_MD5_MBEDTLS = null,
@@ -46,7 +52,7 @@ pub fn build(b: *std.Build) void {
         .ARCHIVE_CRYPTO_RMD160_MBEDTLS = null,
         .ARCHIVE_CRYPTO_RMD160_NETTLE = null,
         .ARCHIVE_CRYPTO_RMD160_OPENSSL = null,
-        .ARCHIVE_CRYPTO_SHA1_LIBC = null,
+        .ARCHIVE_CRYPTO_SHA1_LIBC = true,
         .ARCHIVE_CRYPTO_SHA1_LIBMD = null,
         .ARCHIVE_CRYPTO_SHA1_LIBSYSTEM = null,
         .ARCHIVE_CRYPTO_SHA1_MBEDTLS = null,
@@ -55,7 +61,7 @@ pub fn build(b: *std.Build) void {
         .ARCHIVE_CRYPTO_SHA1_WIN = null,
         .ARCHIVE_CRYPTO_SHA256_LIBC = null,
         .ARCHIVE_CRYPTO_SHA256_LIBC2 = null,
-        .ARCHIVE_CRYPTO_SHA256_LIBC3 = null,
+        .ARCHIVE_CRYPTO_SHA256_LIBC3 = true,
         .ARCHIVE_CRYPTO_SHA256_LIBMD = null,
         .ARCHIVE_CRYPTO_SHA256_LIBSYSTEM = null,
         .ARCHIVE_CRYPTO_SHA256_MBEDTLS = null,
@@ -64,7 +70,7 @@ pub fn build(b: *std.Build) void {
         .ARCHIVE_CRYPTO_SHA256_WIN = null,
         .ARCHIVE_CRYPTO_SHA384_LIBC = null,
         .ARCHIVE_CRYPTO_SHA384_LIBC2 = null,
-        .ARCHIVE_CRYPTO_SHA384_LIBC3 = null,
+        .ARCHIVE_CRYPTO_SHA384_LIBC3 = true,
         .ARCHIVE_CRYPTO_SHA384_LIBSYSTEM = null,
         .ARCHIVE_CRYPTO_SHA384_MBEDTLS = null,
         .ARCHIVE_CRYPTO_SHA384_NETTLE = null,
@@ -72,7 +78,7 @@ pub fn build(b: *std.Build) void {
         .ARCHIVE_CRYPTO_SHA384_WIN = null,
         .ARCHIVE_CRYPTO_SHA512_LIBC = null,
         .ARCHIVE_CRYPTO_SHA512_LIBC2 = null,
-        .ARCHIVE_CRYPTO_SHA512_LIBC3 = null,
+        .ARCHIVE_CRYPTO_SHA512_LIBC3 = true,
         .ARCHIVE_CRYPTO_SHA512_LIBMD = null,
         .ARCHIVE_CRYPTO_SHA512_LIBSYSTEM = null,
         .ARCHIVE_CRYPTO_SHA512_MBEDTLS = null,
@@ -572,19 +578,20 @@ pub fn build(b: *std.Build) void {
             .{ .name = "c", .module = translate_c.createModule() },
         },
     });
+    mod.addCMacro("HAVE_CONFIG_H", "1");
+    mod.addCMacro("EXPORT", "extern");
 
     const lib = b.addLibrary(.{
         .name = package["lib".len..],
         .root_module = mod,
     });
 
-    lib.root_module.linkLibrary(exports);
-    lib.root_module.linkLibrary(acl.artifact("acl"));
-    lib.root_module.linkLibrary(zstd.artifact("zstd"));
-    lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
-    lib.root_module.addCMacro("EXPORT", "extern");
-    lib.root_module.addConfigHeader(config_h);
-    lib.root_module.addCSourceFiles(.{
+    lib.linkLibrary(exports);
+    lib.linkLibrary(md.artifact("md"));
+    lib.linkLibrary(acl.artifact("acl"));
+    lib.linkLibrary(zstd.artifact("zstd"));
+    lib.addConfigHeader(config_h);
+    lib.addCSourceFiles(.{
         .root = upstream.path("libarchive"),
         .files = &archive_src,
     });

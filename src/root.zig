@@ -11,26 +11,53 @@ test "zstd compress" {
     var pkg_dir = try tmp_dir.dir.makeOpenPath("pkg", .{ .iterate = true });
     defer pkg_dir.close();
 
-    var build_info = try pkg_dir.createFile(".BUILD_INFO", .{});
-    try build_info.writeAll("pkgname = helloworld");
-    build_info.close();
+    {
+        var build_info = try pkg_dir.createFile(".BUILD_INFO", .{});
+        defer build_info.close();
+        try build_info.writeAll("pkgname = helloworld\n");
+    }
 
-    var tmp = try pkg_dir.makeOpenPath("home/test", .{});
-    var note = try tmp.createFile("note.txt", .{});
-    try note.writeAll("don't forget to flush");
-    note.close();
-    tmp.close();
+    {
+        var pkg_info = try pkg_dir.createFile(".PKGINFO", .{});
+        defer pkg_info.close();
+        try pkg_info.writeAll("pkgname = helloworld\n");
+    }
+
+    {
+        var home_dir = try pkg_dir.makeOpenPath("usr/bin", .{});
+        defer home_dir.close();
+        var script = try home_dir.createFile("helloworld.sh", .{});
+        defer script.close();
+        try script.chmod(0o755);
+        try script.writeAll("!#/bin/sh\necho \"hello world\"");
+    }
 
     var buf: [8 * 1024]u8 = undefined;
-    var archive_writer: Writer = try .init(&buf, .{
+    var mtree_writer: Writer = try .init(testing.allocator, &buf, .{
+        .dir = pkg_dir,
+        .sub_path = ".MTREE",
+        .flags = .{},
+        .filter = .zstd,
+        .format = .mtree,
+        .fakeroot = true,
+        .opts = &.{
+            "!all", "use-set", "type", "uid",    "gid",
+            "mode", "time",    "size", "sha256", "link",
+        },
+    });
+    defer mtree_writer.deinit();
+    try mtree_writer.writeDir(testing.allocator, pkg_dir);
+
+    var pkg_writer: Writer = try .init(testing.allocator, &buf, .{
         .dir = tmp_dir.dir,
         .sub_path = "helloworld.pkg.tar.zst",
         .flags = .{},
         .filter = .zstd,
         .format = .pax_restricted,
+        .fakeroot = true,
     });
-    defer archive_writer.deinit();
-    try archive_writer.writeDir(testing.allocator, pkg_dir);
+    defer pkg_writer.deinit();
+    try pkg_writer.writeDir(testing.allocator, pkg_dir);
 }
 
 test "decompress" {
