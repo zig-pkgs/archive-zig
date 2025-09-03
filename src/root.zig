@@ -49,7 +49,7 @@ test "zstd compress" {
             },
         });
         defer mtree_writer.deinit();
-        try mtree_writer.writeDir(testing.allocator, pkg_dir);
+        _ = try mtree_writer.writeDir(testing.allocator, pkg_dir);
     }
 
     {
@@ -62,7 +62,7 @@ test "zstd compress" {
             .fakeroot = true,
         });
         defer pkg_writer.deinit();
-        try pkg_writer.writeDir(testing.allocator, pkg_dir);
+        _ = try pkg_writer.writeDir(testing.allocator, pkg_dir);
     }
 }
 

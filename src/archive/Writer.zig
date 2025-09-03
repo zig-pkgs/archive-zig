@@ -131,12 +131,14 @@ pub fn writeFile(w: *Writer, r: *std.Io.Reader) !void {
     try io_w.flush();
 }
 
-pub fn writeDir(w: *Writer, gpa: mem.Allocator, dir: std.fs.Dir) !void {
+pub fn writeDir(w: *Writer, gpa: mem.Allocator, dir: std.fs.Dir) !usize {
     const format = c.archive_format(w.a);
     var walker = try dir.walk(gpa);
     defer walker.deinit();
 
     const archive_stat = try w.file.stat();
+
+    var total_size: usize = 0;
 
     while (try walker.next()) |entry| {
         const st = try posix.fstatat(entry.dir.fd, entry.basename, posix.AT.SYMLINK_NOFOLLOW);
@@ -151,6 +153,8 @@ pub fn writeDir(w: *Writer, gpa: mem.Allocator, dir: std.fs.Dir) !void {
 
                 if (stat.size == 0 or format == c.ARCHIVE_FORMAT_MTREE)
                     continue;
+
+                total_size += @intCast(stat.size);
 
                 const file = try entry.dir.openFile(entry.basename, .{});
                 defer file.close();
@@ -177,6 +181,8 @@ pub fn writeDir(w: *Writer, gpa: mem.Allocator, dir: std.fs.Dir) !void {
             },
         }
     }
+
+    return total_size;
 }
 
 fn writeData(w: *Writer, buf: []const u8) std.Io.Writer.Error!usize {

@@ -1,6 +1,6 @@
 .{
-    .name = .libarchive,
-    .fingerprint = 0x2cf9e5304f26ebc,
+    .name = .archive,
+    .fingerprint = 0xd5fc5d9c44374705,
     .version = "3.8.1",
     .minimum_zig_version = "0.15.1",
     .paths = .{
