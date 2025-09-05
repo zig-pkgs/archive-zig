@@ -116,5 +116,5 @@ const std = @import("std");
 const log = std.log;
 const mem = std.mem;
 const Filter = @import("../Filter.zig");
-const compress = @import("../compress.zig");
+const compress = std.compress;
 const c = @import("c");
