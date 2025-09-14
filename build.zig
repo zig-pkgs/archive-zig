@@ -543,6 +543,7 @@ pub fn build(b: *std.Build) void {
     translate_c_internal.defineCMacro("HAVE_CONFIG_H", "1");
     translate_c_internal.addConfigHeader(config_h);
     translate_c_internal.addIncludePath(upstream.path("libarchive"));
+    const mod_c_internal = translate_c_internal.createModule();
 
     const translate_c = b.addTranslateC(.{
         .root_source_file = b.path("src/c.h"),
@@ -553,6 +554,7 @@ pub fn build(b: *std.Build) void {
     translate_c.defineCMacro("HAVE_CONFIG_H", "1");
     translate_c.addConfigHeader(config_h);
     translate_c.addIncludePath(upstream.path("libarchive"));
+    const mod_c = translate_c.createModule();
 
     const exports = b.addLibrary(.{
         .name = "exports",
@@ -561,10 +563,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{
-                    .name = "c",
-                    .module = translate_c_internal.createModule(),
-                },
+                .{ .name = "c", .module = mod_c_internal },
             },
             .link_libc = true,
         }),
@@ -575,16 +574,19 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .imports = &.{
-            .{ .name = "c", .module = translate_c.createModule() },
+            .{ .name = "c", .module = mod_c },
         },
     });
-    mod.addCMacro("HAVE_CONFIG_H", "1");
-    mod.addCMacro("EXPORT", "extern");
 
     const lib = b.addLibrary(.{
         .name = package["lib".len..],
-        .root_module = mod,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
     });
+    lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
+    lib.root_module.addCMacro("EXPORT", "extern");
 
     lib.linkLibrary(exports);
     lib.linkLibrary(md.artifact("md"));
@@ -606,8 +608,9 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(lib);
 
     const mod_tests = b.addTest(.{
-        .root_module = lib.root_module,
+        .root_module = mod,
     });
+    mod_tests.linkLibrary(lib);
 
     const run_mod_tests = b.addRunArtifact(mod_tests);
 
